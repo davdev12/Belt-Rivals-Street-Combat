@@ -2,7 +2,7 @@ import pygame
 from sys import exit
 
 pygame.init()
-screen = pygame.display.set_mode((800, 400))
+screen = pygame.display.set_mode((901, 557))
 pygame.display.set_caption("Belt Rivals: Street Combat")
 clock = pygame.time.Clock()
 bg_surface = pygame.image.load("images/background1.png")
