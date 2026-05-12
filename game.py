@@ -2,7 +2,7 @@ import pygame
 from sys import exit
 
 def display_score():
-    current_time = int(pygame.time.get_ticks() / 1000) - start_time
+    current_time = int(pygame.time.get_ticks() / 1000) - since_start_time
     score_surf = pixel_font.render("Time: " + f"{current_time}", False, (64, 64, 64))
     score_rect = score_surf.get_rect(center = (600, 30))
     screen.blit(score_surf, score_rect)
@@ -12,14 +12,21 @@ pygame.init()
 screen = pygame.display.set_mode((901, 557))
 pygame.display.set_caption("Belt Rivals: Street Combat")
 clock = pygame.time.Clock()
-game_active = True
-start_time = 0
+game_state = 1
+
+# timer variables
+since_start_time = 0
+since_over_time = 0
+since_menu_time = 0
+
 keys = pygame.key.get_pressed()
 pixel_font = pygame.font.Font("fonts/pixeltype.ttf", 50)
 
-bg_surf = pygame.image.load("images/background1.png").convert_alpha()
-gameover_surf = pygame.image.load("images/gameover.PNG").convert_alpha()
-
+# image definitions
+startmenu_surf = pygame.image.load("images/Startmenu.png").convert()
+bg_surf = pygame.image.load("images/background1.png").convert()
+gameover_surf = pygame.image.load("images/gameover.PNG").convert()
+arrow_surf = pygame.image.load("images/choosing_arrow.png").convert_alpha()
 # score_surf = pixel_font.render("level", False, ("Black"))
 # score_rect = score_surf.get_rect(center = (600, 50))
 
@@ -31,30 +38,47 @@ player_rect = player_surf.get_rect(midbottom = (700, 530))
 player_gravity = 0
 
 while True:
+
+    keys = pygame.key.get_pressed()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
-        if game_active:
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_w] and player_rect.bottom >= 530:
-                player_gravity = -26
+        if event.type == pygame.KEYDOWN:
 
-            if player_rect.colliderect(skeleton_rect):
-                game_active = False
-        else:
-            screen.blit(gameover_surf, (0, 0))
-            skeleton_rect.right = 0
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_SPACE]:
-                game_active = True
-                start_time = int(pygame.time.get_ticks() / 1000)
-    if game_active:
+            if event.key == pygame.K_SPACE:
+                if game_state == 0:
+
+                    game_state = 1
+                    since_start_time = int(pygame.time.get_ticks() / 1000)
+                    skeleton_rect.right = 0
+
+               # elif game_state == 1:
+
+
+                elif game_state == 2:
+
+                    if pygame.time.get_ticks() - since_over_time > 3000:
+                        game_state = 0
+
+    if game_state == 0:
+        screen.blit(startmenu_surf, (0, 0))
+        screen.blit(arrow_surf, (0, 0))
+
+    if game_state == 1:
         screen.blit(bg_surf,(0, 0))
 
         # score/time
         # screen.blit(score_surf, score_rect)
         display_score()
+
+        if player_rect.colliderect(skeleton_rect):
+            game_state = 2
+            since_over_time = pygame.time.get_ticks()
+
+        if keys[pygame.K_w] and player_rect.bottom >= 530:
+            player_gravity = -26
 
         #enemy physics
         skeleton_rect.x += 2
@@ -71,7 +95,8 @@ while True:
         if player_rect.bottom >= 530: player_rect.bottom = 530
         screen.blit(player_surf, player_rect)
 
-
+    if game_state == 2:
+        screen.blit(gameover_surf, (0, 0))
 
     pygame.display.update()
     clock.tick(60)
