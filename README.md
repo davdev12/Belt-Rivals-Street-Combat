@@ -11,12 +11,12 @@
 <h1>Characters</h1>
 
 <img width="360" height="360" alt="crouch_right" src="https://github.com/user-attachments/assets/7bbdcf57-2a8c-4686-ace0-91588f98bfd4" />
-<Strong>Player 1</Strong>
+<Strong></Strong>
 
-<Strong>  </Strong>
+
 
 <img width="300" height="300" alt="skeleton_sword_down_left" src="https://github.com/user-attachments/assets/0da1f08d-eb60-4879-b75d-b5bd4e53b61c" />
-<Strong>Skeleton with sword (enemy)</Strong>
+<Strong></Strong>
 
 <img width="901" height="557" alt="background1" src="https://github.com/user-attachments/assets/052cf1e8-6e59-44bb-92a8-ac937372e9c1" />
 
