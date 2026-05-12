@@ -1,15 +1,27 @@
 import pygame
 from sys import exit
 
+def display_score():
+    current_time = int(pygame.time.get_ticks() / 1000) - start_time
+    score_surf = pixel_font.render("Time: " + f"{current_time}", False, (64, 64, 64))
+    score_rect = score_surf.get_rect(center = (600, 30))
+    screen.blit(score_surf, score_rect)
+    print(current_time)
+
 pygame.init()
 screen = pygame.display.set_mode((901, 557))
 pygame.display.set_caption("Belt Rivals: Street Combat")
 clock = pygame.time.Clock()
 game_active = True
+start_time = 0
 keys = pygame.key.get_pressed()
+pixel_font = pygame.font.Font("fonts/pixeltype.ttf", 50)
 
 bg_surf = pygame.image.load("images/background1.png").convert_alpha()
 gameover_surf = pygame.image.load("images/gameover.PNG").convert_alpha()
+
+# score_surf = pixel_font.render("level", False, ("Black"))
+# score_rect = score_surf.get_rect(center = (600, 50))
 
 skeleton_surf = pygame.image.load("images/skeleton_enemy/skeleton_passive_right.png").convert_alpha()
 skeleton_rect = skeleton_surf.get_rect(midbottom = (40, 530) )
@@ -36,8 +48,15 @@ while True:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_SPACE]:
                 game_active = True
+                start_time = int(pygame.time.get_ticks() / 1000)
     if game_active:
         screen.blit(bg_surf,(0, 0))
+
+        # score/time
+        # screen.blit(score_surf, score_rect)
+        display_score()
+
+        #enemy physics
         skeleton_rect.x += 2
         if skeleton_rect.left > 900: skeleton_rect.right = 0
 
