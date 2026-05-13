@@ -1,6 +1,9 @@
 import pygame
 from sys import exit
 
+from pygame.examples.music_drop_fade import play_file
+
+
 def display_time():
     current_time = int(pygame.time.get_ticks() / 1000) - since_start_time
     time_surf = pixel_font.render("time: " + f"{current_time}", False, (64, 64, 64))
@@ -13,6 +16,40 @@ def display_score():
     score_rect = score_surf.get_rect(center = (700, 15))
     screen.blit(score_surf, score_rect)
     # print(current_time)
+
+"""def player_animation():
+    global player_surf, player_index
+
+    if player_rect.bottom < 530 and player_direction == 0:
+        player_surf = player_jump_fl
+
+    elif player_rect.bottom < 530 and player_direction == 1:
+        player_surf = player_jump_fr
+
+    elif player_rect.bottom >= 530 and player_direction == 0:
+        player_index += 0.1
+        if player_index >= len(player_walk_l): player_index = 0
+        player_surf = player_walk_l_1[int(player_index)]"""
+def player_animation():
+    global player_surf, player_index
+
+    # jump left
+    if player_rect.bottom < 530 and player_direction == 0:
+        player_surf = player_jump_fl
+
+    # jump right
+    elif player_rect.bottom < 530 and player_direction == 1:
+        player_surf = player_jump_fr
+
+    # walk left
+    elif player_direction == 0:
+
+        player_index += 0.1
+
+        if player_index >= len(player_walk_l):
+            player_index = 0
+
+        player_surf = player_walk_l[int(player_index)]
 
 pygame.init()
 screen = pygame.display.set_mode((901, 557))
@@ -40,9 +77,26 @@ arrow_surf = pygame.image.load("images/choosing_arrow.png").convert_alpha()
 skeleton_surf = pygame.image.load("images/skeleton_enemy/skeleton_passive_right.png").convert_alpha()
 skeleton_rect = skeleton_surf.get_rect(midbottom = (40, 530) )
 
-player_surf = pygame.image.load("images/BlueFist/passive_wide_left.png").convert_alpha()
-player_rect = player_surf.get_rect(midbottom = (700, 530))
+# All player frames:
+player_jump_fr = pygame.image.load("images/BlueFist/front_knee_right.png").convert_alpha()
+player_jump_fl = pygame.image.load("images/BlueFist/front_knee_left.png").convert_alpha()
+player_pas_wide_r = pygame.image.load("images/BlueFist/passive_wide_right.png").convert_alpha()
+player_pas_wide_l = pygame.image.load("images/BlueFist/passive_wide_left.png").convert_alpha()
+player_walk_r_2 = pygame.image.load("images/BlueFist/walk_split_right.png").convert_alpha()
+player_walk_r_1 = pygame.image.load("images/BlueFist/walk_crossed_right.png").convert_alpha()
+player_walk_l_2 = pygame.image.load("images/BlueFist/walk_split_left.png").convert_alpha()
+player_walk_l_1 = pygame.image.load("images/BlueFist/walk_crossed_left.png").convert_alpha()
+player_walk_l = [player_walk_l_1, player_walk_l_2]
+player_walk_r = [player_walk_r_1, player_walk_r_2]
+player_index = 0
+player_rect = player_pas_wide_l.get_rect(midbottom = (700, 530))
 player_gravity = 0
+
+player_direction = 0 # 0 - left, 1- right
+if player_direction == 0:
+    player_surf =  player_walk_l[player_index]
+else: player_surf = player_walk_r[player_index]
+
 
 while True:
 
@@ -60,6 +114,15 @@ while True:
 
                 if event.key == pygame.K_UP:
                     arrow_y = 0
+            # actual in-game processes:
+            if game_state == 1:
+                if event.key == pygame.K_w and player_rect.bottom >= 530 and player_direction == 0:
+                    player_gravity = -20
+                    player_rect.x -= 30
+                elif event.key == pygame.K_w and player_rect.bottom >= 530 and player_direction == 1:
+                    player_gravity = -20
+                    player_rect.x += 30
+
             if event.key == pygame.K_SPACE:
                 if game_state == 0 and arrow_y == 0:
 
@@ -72,7 +135,7 @@ while True:
 
                 elif game_state == 2:
 
-                    if pygame.time.get_ticks() - since_over_time > 3000:
+                    if pygame.time.get_ticks() - since_over_time > 000:
                         game_state = 0
 
     if game_state == 0:
@@ -92,14 +155,17 @@ while True:
             game_state = 2
             since_over_time = pygame.time.get_ticks()
 
-        if keys[pygame.K_w] and player_rect.bottom >= 530:
-            player_gravity = -26
 
         #enemy physics
         skeleton_rect.x += 2
         if skeleton_rect.left > 900: skeleton_rect.right = 0
 
-
+        if keys[pygame.K_a] and player_rect.bottom >= 530:
+            player_direction = 0
+            player_rect.x -= 5
+        if keys[pygame.K_d] and player_rect.bottom >= 530:
+            player_direction = 1
+            player_rect.x += 5
         #player_rect.x -= 1
         if player_rect.right < 0: player_rect.left = 901
 
@@ -108,6 +174,7 @@ while True:
         player_gravity += 1
         player_rect.y += player_gravity
         if player_rect.bottom >= 530: player_rect.bottom = 530
+        player_animation()
         screen.blit(player_surf, player_rect)
 
     if game_state == 2:
