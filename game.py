@@ -51,6 +51,15 @@ def player_animation():
 
         player_surf = player_walk_l[int(player_index)]
 
+    elif player_direction == 1:
+
+        player_index += 0.1
+
+        if player_index >= len(player_walk_r):
+            player_index = 0
+
+        player_surf = player_walk_r[int(player_index)]
+
 pygame.init()
 screen = pygame.display.set_mode((901, 557))
 pygame.display.set_caption("Belt Rivals: Street Combat")
