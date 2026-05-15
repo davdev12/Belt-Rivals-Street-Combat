@@ -1,5 +1,6 @@
 import pygame
 from sys import exit
+from pathlib import Path
 
 from pygame.examples.music_drop_fade import play_file
 
@@ -106,6 +107,33 @@ if player_direction == 0:
     player_surf =  player_walk_l[player_index]
 else: player_surf = player_walk_r[player_index]
 
+# health bar
+MAX_PLAYER_HEALTH = 8
+HIT_COOLDOWN = 700
+DAMAGE_BAR_TIME = 350
+
+player_health = MAX_PLAYER_HEALTH
+last_hit_time = -HIT_COOLDOWN
+health_bar_mode = "stable"
+health_bar_mode_started = 0
+
+health_bar_frames = {
+    "stable": {},
+    "damage": {}
+}
+
+for health_bar_path in Path("images/health_bar").glob("hp_*_*.png"):
+    _, health_value, health_mode = health_bar_path.stem.split("_")
+    health_bar_frames[health_mode][int(health_value)] = pygame.image.load(health_bar_path).convert_alpha()
+
+def get_health_bar_surf(health, mode):
+    if health <= 0:
+        return health_bar_frames["stable"][0]
+
+    if health not in health_bar_frames[mode]:
+        mode = "stable"
+
+    return health_bar_frames[mode][health]
 
 while True:
 
@@ -136,6 +164,8 @@ while True:
                 if game_state == 0 and arrow_y == 0:
 
                     game_state = 1
+                    player_health = MAX_PLAYER_HEALTH
+                    health_bar_mode = "stable"
                     since_start_time = int(pygame.time.get_ticks() / 1000)
                     skeleton_rect.right = 0
 
@@ -155,14 +185,27 @@ while True:
     if game_state == 1:
         screen.blit(bg_surf,(0, 0))
 
+        if health_bar_mode == "damage" and pygame.time.get_ticks() - health_bar_mode_started > DAMAGE_BAR_TIME:
+            health_bar_mode = "stable"
+
+        screen.blit(get_health_bar_surf(player_health, health_bar_mode), (0, 0))
+
         # score/time
         # screen.blit(score_surf, score_rect)
         display_time()
         display_score()
 
-        if player_rect.colliderect(skeleton_rect):
-            game_state = 2
-            since_over_time = pygame.time.get_ticks()
+        if player_rect.colliderect(skeleton_rect) and pygame.time.get_ticks() - last_hit_time > HIT_COOLDOWN:
+            last_hit_time = pygame.time.get_ticks()
+
+            player_health -= 1
+
+            health_bar_mode = "damage"
+            health_bar_mode_started = pygame.time.get_ticks()
+
+            if player_health <= 0:
+                game_state = 2
+                since_over_time = last_hit_time
 
 
         #enemy physics
