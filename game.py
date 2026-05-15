@@ -31,6 +31,7 @@ def display_score():
         player_index += 0.1
         if player_index >= len(player_walk_l): player_index = 0
         player_surf = player_walk_l_1[int(player_index)]"""
+
 def player_animation():
     global player_surf, player_index
 
@@ -42,19 +43,25 @@ def player_animation():
     elif player_rect.bottom < 530 and player_direction == 1:
         player_surf = player_jump_fr
 
-    # walk left
-    elif player_direction == 0:
+    elif player_direction == 0 and not keys[pygame.K_a]:
+        player_surf = player_pas_wide_l
 
-        player_index += 0.1
+    elif player_direction == 1 and not keys[pygame.K_d]:
+        player_surf = player_pas_wide_r
+
+    # walk left
+    elif player_direction == 0 and keys[pygame.K_a]:
+
+        player_index += 0.075
 
         if player_index >= len(player_walk_l):
             player_index = 0
 
         player_surf = player_walk_l[int(player_index)]
 
-    elif player_direction == 1:
+    elif player_direction == 1 and keys[pygame.K_d]:
 
-        player_index += 0.1
+        player_index += 0.075
 
         if player_index >= len(player_walk_r):
             player_index = 0
@@ -92,12 +99,16 @@ player_jump_fr = pygame.image.load("images/BlueFist/front_knee_right.png").conve
 player_jump_fl = pygame.image.load("images/BlueFist/front_knee_left.png").convert_alpha()
 player_pas_wide_r = pygame.image.load("images/BlueFist/passive_wide_right.png").convert_alpha()
 player_pas_wide_l = pygame.image.load("images/BlueFist/passive_wide_left.png").convert_alpha()
-player_walk_r_2 = pygame.image.load("images/BlueFist/walk_split_right.png").convert_alpha()
-player_walk_r_1 = pygame.image.load("images/BlueFist/walk_crossed_right.png").convert_alpha()
-player_walk_l_2 = pygame.image.load("images/BlueFist/walk_split_left.png").convert_alpha()
-player_walk_l_1 = pygame.image.load("images/BlueFist/walk_crossed_left.png").convert_alpha()
-player_walk_l = [player_walk_l_1, player_walk_l_2]
-player_walk_r = [player_walk_r_1, player_walk_r_2]
+player_walk_r_2 = pygame.image.load("images/BlueFist/walk_r2.png").convert_alpha()
+player_walk_r_1 = pygame.image.load("images/BlueFist/walk_r1.png").convert_alpha()
+player_walk_r_3 = pygame.image.load("images/BlueFist/walk_r3.png").convert_alpha()
+player_walk_r_4 = pygame.image.load("images/BlueFist/walk_r4.png").convert_alpha()
+player_walk_l_2 = pygame.image.load("images/BlueFist/walk_l2.png").convert_alpha()
+player_walk_l_1 = pygame.image.load("images/BlueFist/walk_l1.png").convert_alpha()
+player_walk_l_3 = pygame.image.load("images/BlueFist/walk_l3.png").convert_alpha()
+player_walk_l_4 = pygame.image.load("images/BlueFist/walk_l4.png").convert_alpha()
+player_walk_l = [player_walk_l_1, player_walk_l_2, player_walk_l_3, player_walk_l_4]
+player_walk_r = [player_walk_r_1, player_walk_r_2, player_walk_r_3, player_walk_r_4]
 player_index = 0
 player_rect = player_pas_wide_l.get_rect(midbottom = (700, 530))
 player_gravity = 0
@@ -105,7 +116,7 @@ player_gravity = 0
 player_direction = 0 # 0 - left, 1- right
 if player_direction == 0:
     player_surf =  player_walk_l[player_index]
-else: player_surf = player_walk_r[player_index]
+elif player_direction == 1: player_surf = player_walk_r[player_index]
 
 # health bar
 MAX_PLAYER_HEALTH = 8
