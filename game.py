@@ -135,6 +135,7 @@ player_health = MAX_PLAYER_HEALTH
 last_hit_time = -HIT_COOLDOWN
 health_bar_mode = "stable"
 health_bar_mode_started = 0
+pending_damage = False
 attack_start_time = 0
 
 health_bar_frames = {
@@ -191,6 +192,7 @@ while True:
                     game_state = 1
                     player_health = MAX_PLAYER_HEALTH
                     health_bar_mode = "stable"
+                    pending_damage = False
                     since_start_time = int(pygame.time.get_ticks() / 1000)
                     skeleton_rect.right = 0
 
@@ -212,6 +214,12 @@ while True:
 
         if health_bar_mode == "damage" and pygame.time.get_ticks() - health_bar_mode_started > DAMAGE_BAR_TIME:
             health_bar_mode = "stable"
+            if pending_damage:
+                player_health -= 1
+                pending_damage = False
+                if player_health <= 0:
+                    game_state = 2
+                    since_over_time = pygame.time.get_ticks()
 
         screen.blit(get_health_bar_surf(player_health, health_bar_mode), (0, 0))
 
@@ -225,16 +233,15 @@ while True:
 
         if player_rect.colliderect(skeleton_rect) and pygame.time.get_ticks() - last_hit_time > HIT_COOLDOWN:
             last_hit_time = pygame.time.get_ticks()
+            
+            pending_damage =True
+            
             if pos_dif_pla_skel >= 0:
                 if player_attacking == 1:
                     skeleton_rect.x -= 100
                 else: player_health -= 1
             health_bar_mode = "damage"
             health_bar_mode_started = pygame.time.get_ticks()
-
-            if player_health <= 0:
-                game_state = 2
-                since_over_time = last_hit_time
 
 
         #enemy physics
