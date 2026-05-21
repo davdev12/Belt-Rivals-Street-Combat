@@ -1,10 +1,7 @@
-from pickle import FALSE
-
+import random
 import pygame
 from sys import exit
 from pathlib import Path
-
-from pygame.sprite import GroupSingle
 
 """class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -88,14 +85,221 @@ from pygame.sprite import GroupSingle
         self.player_input()
         self.apply_gravity()"""
 
-"""class Skeleton(pygame.sprite.Sprite):
+class Skeleton(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.image.load("images/skeleton_enemy/skeleton_passive_right.png").convert_alpha()
-        self.rect = self.image.get_rect(midbottom = (200, 300))"""
+        global HIT_COOLDOWN
+        HIT_COOLDOWN = 1000
+        self.health = 3
+        self.speed = 2
+        self.normal_speed = 2
+        self.slow_speed = 1
+        self.knockback = 0
+        self.friction = 0.85
+        self.last_hit_time = -HIT_COOLDOWN
+        self.slow_start_time = 0
 
+        self.index = 0
+        self.direction = 0
 
+        self.passive_r = pygame.image.load(
+            "images/skeleton_enemy/skeleton_passive_right.png"
+        ).convert_alpha()
 
+        self.passive_l = pygame.image.load(
+            "images/skeleton_enemy/skeleton_passive_left.png"
+        ).convert_alpha()
+
+        self.walk_split_l = pygame.image.load(
+            "images/skeleton_enemy/skeleton_walk_split_left.png"
+        ).convert_alpha()
+
+        self.walk_split_r = pygame.image.load(
+            "images/skeleton_enemy/skeleton_walk_split_right.png"
+        ).convert_alpha()
+
+        self.walk_cross_l = pygame.image.load(
+            "images/skeleton_enemy/skeleton_walk_crossed_left.png"
+        ).convert_alpha()
+
+        self.walk_cross_r = pygame.image.load(
+            "images/skeleton_enemy/skeleton_walk_crossed_right.png"
+        ).convert_alpha()
+
+        self.sword_up_l = pygame.image.load(
+            "images/skeleton_enemy/skeleton_sword_up_left.png"
+        ).convert_alpha()
+
+        self.sword_down_l = pygame.image.load(
+            "images/skeleton_enemy/skeleton_sword_down_left.png"
+        ).convert_alpha()
+
+        self.sword_up_r = pygame.image.load(
+            "images/skeleton_enemy/skeleton_sword_up_right.png"
+        ).convert_alpha()
+
+        self.sword_down_r = pygame.image.load(
+            "images/skeleton_enemy/skeleton_sword_down_right.png"
+        ).convert_alpha()
+
+        self.walk_l = [
+            self.passive_l,
+            self.walk_split_l,
+            self.walk_cross_l
+        ]
+
+        self.walk_r = [
+            self.passive_r,
+            self.walk_split_r,
+            self.walk_cross_r
+        ]
+
+        self.attack_l = [
+            self.sword_up_l,
+            self.sword_down_l,
+            self.passive_l
+        ]
+
+        self.attack_r = [
+            self.sword_up_r,
+            self.sword_down_r,
+            self.passive_r
+        ]
+        self.image = self.passive_r
+        self.rect = self.image.get_rect(midbottom=(40, 530))
+
+        self.mask = pygame.mask.from_surface(self.image)
+
+    def animation(self):
+
+        self.index += 0.10
+
+        if self.direction == 0:
+            frames = self.walk_l
+
+        elif self.direction == 1:
+            frames = self.walk_r
+
+        elif self.direction == 2:
+            frames = self.attack_l
+
+        else:
+            frames = self.attack_r
+
+        if self.index >= len(frames):
+            self.index = 0
+
+        self.image = frames[int(self.index)]
+
+        # update mask every frame
+        self.mask = pygame.mask.from_surface(self.image)
+
+    def move(self, player_rect):
+
+        difference = player_rect.centerx - self.rect.centerx
+
+        # attack range
+        if abs(difference) <= 130:
+
+            if difference > 0:
+                self.direction = 3
+            else:
+                self.direction = 2
+
+        # move toward player
+        else:
+
+            if difference > 0:
+                self.direction = 1
+                self.rect.x += self.speed
+
+            else:
+                self.direction = 0
+                self.rect.x -= self.speed
+
+    def knockback_func(self):
+
+        self.rect.x += self.knockback
+
+        self.knockback *= self.friction
+
+        if abs(self.knockback) < 0.05:
+            self.knockback = 0
+
+    def collision(self, player_rect, player_mask):
+
+        global score
+        global pending_damage
+        global health_bar_mode
+        global health_bar_mode_started
+        #global HIT_COOLDOWN
+        self.offset = (
+            self.rect.x - player_rect.x,
+            self.rect.y - player_rect.y
+        )
+
+        self.collided = player_mask.overlap(self.mask, self.offset)
+
+        if not self.collided:
+            return
+
+        if pygame.time.get_ticks() - self.last_hit_time < HIT_COOLDOWN:
+            return
+
+        self.last_hit_time = pygame.time.get_ticks()
+        self.difference = player_rect.centerx - self.rect.centerx
+
+        if player_attacking and ((attack_direction == 0 and self.difference > 100) or (attack_direction == 1 and self.difference < 100)):
+
+            if player_rect.bottom < 530:
+                self.health -= 2
+                score += 20
+            elif player_rect.bottom >= 530:
+                self.health -= 1
+                score += 10
+
+            difference = player_rect.centerx - self.rect.centerx
+
+            if player_rect.bottom < 530:
+                if difference > 0:
+                    self.knockback = -50
+                else:
+                    self.knockback = 50
+            else:
+                if difference > 0:
+                    self.knockback = -25
+                else:
+                    self.knockback = 25
+
+            # crouch kick slows enem
+            if player_crouching:
+                self.speed = self.slow_speed
+                self.slow_start_time = pygame.time.get_ticks()
+
+        elif self.direction in [2, 3]:
+
+            pending_damage = True
+            health_bar_mode = "damage"
+            health_bar_mode_started = pygame.time.get_ticks()
+
+    def slow(self):
+
+        if self.speed == self.slow_speed:
+
+            if pygame.time.get_ticks() - self.slow_start_time > SLOW_DURATION:
+                self.speed = self.normal_speed
+
+    def update(self, player_rect, player_mask):
+
+        self.slow()
+
+        self.knockback_func()
+
+        self.move(player_rect)
+
+        self.animation()
+
+        self.collision(player_rect, player_mask)
 def display_time():
     current_time = int(pygame.time.get_ticks() / 1000) - since_start_time
     time_surf = pixel_font.render("time: " + f"{current_time}", False, (64, 64, 64))
@@ -132,38 +336,7 @@ def player_ko():
     if pygame.time.get_ticks() - ko_start_time > 2000:
         game_state = 2
 
-def skeleton_animation():
-    global skeleton_surf, skeleton_index
 
-    if skeleton_direction == 0:
-        skeleton_index += 0.075
-
-        if skeleton_index >= len(skeleton_walk_l):
-            skeleton_index = 0
-
-        skeleton_surf = skeleton_walk_l[int(skeleton_index)]
-    elif skeleton_direction == 1:
-        skeleton_index += 0.075
-
-        if skeleton_index >= len(skeleton_walk_r):
-            skeleton_index = 0
-
-        skeleton_surf = skeleton_walk_r[int(skeleton_index)]
-    elif skeleton_direction == 2:
-        skeleton_index += 0.075
-
-        if skeleton_index >= len(skeleton_pas_l):
-            skeleton_index = 0
-
-        skeleton_surf = skeleton_pas_r[int(skeleton_index)]
-
-    elif skeleton_direction == 3:
-        skeleton_index += 0.075
-
-        if skeleton_index >= len(skeleton_pas_r):
-            skeleton_index = 0
-
-        skeleton_surf = skeleton_pas_l[int(skeleton_index)]
 
 def player_animation():
     global player_surf, player_index, player_crouching
@@ -218,13 +391,15 @@ def player_animation():
 pygame.init()
 screen = pygame.display.set_mode((901, 557))
 pygame.display.set_caption("Belt Rivals: Street Combat")
+icon = pygame.image.load("images/redtech.png").convert_alpha()
+pygame.display.set_icon(icon)
 clock = pygame.time.Clock()
 game_state = 0
 score = 0
 arrow_y = 0
 
-#skeleton = pygame.sprite.GroupSingle()
-#skeleton.add(Skeleton())
+skeleton = pygame.sprite.GroupSingle()
+skeleton.add(Skeleton())
 
 #player = pygame.sprite.GroupSingle()
 #player.add(Player())
@@ -285,39 +460,29 @@ player_dead = False
 ko_start_time = 0
 
 
-skeleton_sword_down_r = pygame.image.load("images/skeleton_enemy/skeleton_sword_down_right.png").convert_alpha()
-skeleton_sword_up_r = pygame.image.load("images/skeleton_enemy/skeleton_sword_up_right.png").convert_alpha()
-skeleton_sword_down_l = pygame.image.load("images/skeleton_enemy/skeleton_sword_down_left.png").convert_alpha()
-skeleton_sword_up_l = pygame.image.load("images/skeleton_enemy/skeleton_sword_up_left.png").convert_alpha()
-skeleton_pas_r = pygame.image.load("images/skeleton_enemy/skeleton_passive_right.png").convert_alpha()
-skeleton_pas_l = pygame.image.load("images/skeleton_enemy/skeleton_passive_left.png").convert_alpha()
-skeleton_walk_split_l = pygame.image.load("images/skeleton_enemy/skeleton_walk_split_left.png").convert_alpha()
-skeleton_walk_split_r = pygame.image.load("images/skeleton_enemy/skeleton_walk_split_right.png").convert_alpha()
-skeleton_walk_crossed_l = pygame.image.load("images/skeleton_enemy/skeleton_walk_crossed_left.png").convert_alpha()
-skeleton_walk_crossed_r = pygame.image.load("images/skeleton_enemy/skeleton_walk_crossed_right.png").convert_alpha()
-skeleton_rect = skeleton_pas_r.get_rect(midbottom = (40, 530) )
 
 
-skeleton_knockback = 0
 
-skeleton_index = 0
-skeleton_direction = 1
-skeleton_walk_l = [skeleton_pas_l, skeleton_walk_split_l, skeleton_walk_crossed_l]
+#skeleton_knockback = 0
+
+#skeleton_index = 0
+#skeleton_direction = 1
+"""skeleton_walk_l = [skeleton_pas_l, skeleton_walk_split_l, skeleton_walk_crossed_l]
 skeleton_walk_r = [skeleton_pas_r, skeleton_walk_split_r, skeleton_walk_crossed_r]
 skeleton_pas_l = [skeleton_sword_up_l, skeleton_sword_down_l, skeleton_pas_l]
-skeleton_pas_r = [skeleton_sword_up_r, skeleton_sword_down_r, skeleton_pas_r]
+skeleton_pas_r = [skeleton_sword_up_r, skeleton_sword_down_r, skeleton_pas_r]"""
 
 player_direction = 0 # 0 - left, 1- right
 if player_direction == 0:
     player_surf =  player_walk_l[player_index]
 elif player_direction == 1: player_surf = player_walk_r[player_index]
 
-if skeleton_direction == 0:
+"""if skeleton_direction == 0:
     skeleton_surf =  skeleton_walk_l[skeleton_index]
 elif skeleton_direction == 1: skeleton_surf = skeleton_walk_r[skeleton_index]
-elif skeleton_direction == 2: skeleton_surf = skeleton_pas_r
+elif skeleton_direction == 2: skeleton_surf = skeleton_pas_r"""
 player_mask = pygame.mask.from_surface(player_surf)
-skeleton_mask = pygame.mask.from_surface(skeleton_surf)
+#skeleton_mask = pygame.mask.from_surface(skeleton_surf)
 # health bar
 MAX_PLAYER_HEALTH = 8
 HIT_COOLDOWN = 1000
@@ -325,8 +490,8 @@ DAMAGE_BAR_TIME = 350
 DAMAGE_DELAY = 0
 ATTACK_TIME = 500
 ATTACK_COOLDOWN = 600
-SKELETON_HEALTH = 30
-FRICTION = 0.85
+#SKELETON_HEALTH = 300
+#FRICTION = 0.85
 player_health = MAX_PLAYER_HEALTH
 
 NORMAL_SKELETON_SPEED = 2
@@ -364,6 +529,7 @@ def get_health_bar_surf(health, mode):
         mode = "stable"
 
     return health_bar_frames[mode][health]
+
 
 while True:
 
@@ -452,7 +618,7 @@ while True:
                     health_bar_mode = "stable"
                     pending_damage = False
                     since_start_time = int(pygame.time.get_ticks() / 1000)
-                    skeleton_rect.right = 0
+                    #skeleton_rect.right = 0
 
                # elif game_state == 1:
 
@@ -467,7 +633,7 @@ while True:
 
         screen.blit(arrow_surf, (0, arrow_y))
     player_mask = pygame.mask.from_surface(player_surf)
-    skeleton_mask = pygame.mask.from_surface(skeleton_surf)
+    #skeleton_mask = pygame.mask.from_surface(skeleton_surf)
 
     if game_state == 1:
         screen.blit(bg_surf,(0, 0))
@@ -497,10 +663,10 @@ while True:
             if pygame.time.get_ticks() - attack_start_time > ATTACK_TIME:
                 player_attacking = 0
 
-        offset = (skeleton_rect.x - player_rect.x,
-                  skeleton_rect.y - player_rect.y)
+        #offset = (skeleton_rect.x - player_rect.x,
+                  #skeleton_rect.y - player_rect.y)
 
-        if player_mask.overlap(skeleton_mask, offset) and pygame.time.get_ticks() - last_hit_time > HIT_COOLDOWN and SKELETON_HEALTH >  0:
+        """if player_mask.overlap(self.mask, self.offset) and pygame.time.get_ticks() - last_hit_time > HIT_COOLDOWN and SKELETON_HEALTH >  0:
             last_hit_time = pygame.time.get_ticks()
             # PLAYER IS ATTACKING
 
@@ -535,11 +701,11 @@ while True:
                 if pygame.time.get_ticks() - DAMAGE_DELAY >= 600:
                     pending_damage = True
                     health_bar_mode = "damage"
-                    health_bar_mode_started = pygame.time.get_ticks()
+                    health_bar_mode_started = pygame.time.get_ticks()"""
 
-        pos_difference = player_rect.centerx - skeleton_rect.centerx
+        """pos_difference = player_rect.centerx - skeleton_rect.centerx"""
 
-        skeleton_rect.x += skeleton_knockback
+        """skeleton_rect.x += skeleton_knockback
         skeleton_knockback *= FRICTION
 
         if abs(skeleton_knockback) < 0.05:
@@ -557,7 +723,7 @@ while True:
                 skeleton_rect.x += skeleton_speed
             else:
                 skeleton_direction = 0
-                skeleton_rect.x -=  skeleton_speed
+                skeleton_rect.x -=  skeleton_speed"""
         #enemy physics
         #
 
@@ -572,12 +738,14 @@ while True:
             player_rect.x += 5
 
         if not player_dead:
-            skeleton_animation()
-            #skeleton.draw(screen)
+            #skeleton_animation()
+            skeleton.update(player_rect, player_mask)
+            skeleton.draw(screen)
+
         # player_rect.x -= 1
         #if player_rect.right < 0: player_rect.left = 901
-        if SKELETON_HEALTH > 0:
-            screen.blit(skeleton_surf, skeleton_rect)
+        #if SKELETON_HEALTH > 0:
+            #screen.blit(skeleton_surf, skeleton_rect)
 
 
 ############################################################################
@@ -601,6 +769,3 @@ while True:
 
     pygame.display.update()
     clock.tick(60)
-
-
-
