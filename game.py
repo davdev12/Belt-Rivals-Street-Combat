@@ -88,7 +88,7 @@ from pathlib import Path
 class Skeleton(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        global HIT_COOLDOWN
+        global HIT_COOLDOWN, crouching
         HIT_COOLDOWN = 1000
         self.health = 3
         self.speed = 2
@@ -165,6 +165,14 @@ class Skeleton(pygame.sprite.Sprite):
             self.sword_down_r,
             self.passive_r
         ]
+
+        self.passive_left = [
+            self.passive_l
+        ]
+
+        self.passive_right = [
+            self.passive_r
+        ]
         self.image = self.passive_r
         self.rect = self.image.get_rect(midbottom=(40, 530))
 
@@ -172,7 +180,7 @@ class Skeleton(pygame.sprite.Sprite):
 
     def animation(self):
 
-        self.index += 0.10
+        self.index += 0.045
 
         if self.direction == 0:
             frames = self.walk_l
@@ -180,11 +188,17 @@ class Skeleton(pygame.sprite.Sprite):
         elif self.direction == 1:
             frames = self.walk_r
 
-        elif self.direction == 2:
+        elif self.direction == 2 and not player_dead:
             frames = self.attack_l
 
-        else:
+        elif self.direction == 3 and not player_dead:
             frames = self.attack_r
+
+        elif self.direction == 2 and player_dead:
+            frames = self.passive_left
+
+        elif self.direction == 3 and player_dead:
+            frames = self.passive_right
 
         if self.index >= len(frames):
             self.index = 0
@@ -290,7 +304,7 @@ class Skeleton(pygame.sprite.Sprite):
                 self.speed = self.normal_speed
 
     def update(self, player_rect, player_mask):
-
+        global score
         self.slow()
 
         self.knockback_func()
@@ -300,6 +314,10 @@ class Skeleton(pygame.sprite.Sprite):
         self.animation()
 
         self.collision(player_rect, player_mask)
+
+        if self.health <= 0:
+            score += 20
+            self.kill()
 def display_time():
     current_time = int(pygame.time.get_ticks() / 1000) - since_start_time
     time_surf = pixel_font.render("time: " + f"{current_time}", False, (64, 64, 64))
@@ -397,9 +415,21 @@ clock = pygame.time.Clock()
 game_state = 0
 score = 0
 arrow_y = 0
+enemy_amount = 1
+current_enemies = 0
 
-skeleton = pygame.sprite.GroupSingle()
-skeleton.add(Skeleton())
+skeletons = pygame.sprite.Group()
+
+
+
+
+if enemy_amount > current_enemies:
+    current_enemies += 1
+    enemy = Skeleton()
+
+    # spread them out
+    enemy.rect.x = random.randint(50, 800)
+    skeletons.add(enemy)
 
 #player = pygame.sprite.GroupSingle()
 #player.add(Player())
@@ -450,7 +480,7 @@ player_walk_r = [player_walk_r_1, player_walk_r_2, player_walk_r_3, player_walk_
 player_fail_l = [player_pas_wide_l, player_fall_l, player_ko_l]
 player_fail_r = [player_pas_wide_r, player_fall_r, player_ko_r]
 
-player_crouching = 0
+crouching = 0
 player_index = 0
 player_rect = player_pas_wide_l.get_rect(midbottom = (700, 530))
 player_gravity = 0
@@ -458,7 +488,6 @@ player_attacking = 0
 pos_difference = 0
 player_dead = False
 ko_start_time = 0
-
 
 
 
@@ -737,10 +766,10 @@ while True:
             player_direction = 1
             player_rect.x += 5
 
-        if not player_dead:
+        #if not player_dead:
             #skeleton_animation()
-            skeleton.update(player_rect, player_mask)
-            skeleton.draw(screen)
+        skeletons.update(player_rect, player_mask)
+        skeletons.draw(screen)
 
         # player_rect.x -= 1
         #if player_rect.right < 0: player_rect.left = 901
