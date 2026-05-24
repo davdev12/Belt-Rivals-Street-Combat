@@ -246,6 +246,7 @@ class Skeleton(pygame.sprite.Sprite):
         global pending_damage
         global health_bar_mode
         global health_bar_mode_started
+        global enemy_amount
         #global HIT_COOLDOWN
         self.offset = (
             self.rect.x - player_rect.x,
@@ -271,7 +272,8 @@ class Skeleton(pygame.sprite.Sprite):
             elif player_rect.bottom >= 530:
                 self.health -= 1
                 score += 10
-
+            if self.health <= 1:
+                enemy_amount += 1
             difference = player_rect.centerx - self.rect.centerx
 
             if player_rect.bottom < 530:
@@ -304,7 +306,7 @@ class Skeleton(pygame.sprite.Sprite):
                 self.speed = self.normal_speed
 
     def update(self, player_rect, player_mask):
-        global score
+        global score, current_enemies
         self.slow()
 
         self.knockback_func()
@@ -318,6 +320,7 @@ class Skeleton(pygame.sprite.Sprite):
         if self.health <= 0:
             score += 20
             self.kill()
+            current_enemies -= 1
 def display_time():
     current_time = int(pygame.time.get_ticks() / 1000) - since_start_time
     time_surf = pixel_font.render("time: " + f"{current_time}", False, (64, 64, 64))
@@ -423,13 +426,7 @@ skeletons = pygame.sprite.Group()
 
 
 
-if enemy_amount > current_enemies:
-    current_enemies += 1
-    enemy = Skeleton()
 
-    # spread them out
-    enemy.rect.x = random.randint(50, 800)
-    skeletons.add(enemy)
 
 #player = pygame.sprite.GroupSingle()
 #player.add(Player())
@@ -522,6 +519,7 @@ ATTACK_COOLDOWN = 600
 #SKELETON_HEALTH = 300
 #FRICTION = 0.85
 player_health = MAX_PLAYER_HEALTH
+max_enemies = 6
 
 NORMAL_SKELETON_SPEED = 2
 SLOW_SKELETON_SPEED = 1
@@ -666,7 +664,13 @@ while True:
 
     if game_state == 1:
         screen.blit(bg_surf,(0, 0))
+        if enemy_amount > current_enemies and current_enemies < max_enemies:
+            current_enemies += 1
+            enemy = Skeleton()
 
+            # spread them out
+            enemy.rect.centerx = random.randint(-300, -100) or random.randint(1000, 1300)
+            skeletons.add(enemy)
         # restore speed after slow expires
         if skeleton_speed == SLOW_SKELETON_SPEED:
             if pygame.time.get_ticks() - slow_start_time > SLOW_DURATION:
