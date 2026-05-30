@@ -3,6 +3,9 @@ import pygame
 from sys import exit
 from pathlib import Path
 
+from PIL.ImageChops import difference
+from django.template.defaultfilters import center
+
 """class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -317,7 +320,7 @@ class Skeleton(pygame.sprite.Sprite):
 
         self.collision(player_rect, player_mask)
 
-        if self.health <= 0:
+        if self.health <= 0 or game_state == 2:
             score += 20
             self.kill()
             current_enemies -= 1
@@ -516,6 +519,7 @@ DAMAGE_BAR_TIME = 350
 DAMAGE_DELAY = 0
 ATTACK_TIME = 500
 ATTACK_COOLDOWN = 600
+JUMP_ATTACK_COOLDOWN = 1200
 #SKELETON_HEALTH = 300
 #FRICTION = 0.85
 player_health = MAX_PLAYER_HEALTH
@@ -586,7 +590,7 @@ while True:
                         player_gravity = -20
                         player_rect.x += 30
                 # KICK
-                elif event.key == pygame.K_j and player_rect.bottom >= 530  and player_crouching == 0 and not player_dead:
+                elif event.key == pygame.K_j and player_rect.bottom >= 530  and not player_crouching and not player_dead:
                     if pygame.time.get_ticks() - last_attack_time >= ATTACK_COOLDOWN:
 
                         last_attack_time = pygame.time.get_ticks()
@@ -602,8 +606,8 @@ while True:
                         else:
                             player_surf = player_frontkick_r
 
-                elif event.key == pygame.K_j and player_rect.bottom < 530  and player_crouching == 0  and not player_dead:
-                    if pygame.time.get_ticks() - last_attack_time >= ATTACK_COOLDOWN:
+                elif event.key == pygame.K_j and player_rect.bottom < 530  and not player_crouching  and not player_dead:
+                    if pygame.time.get_ticks() - last_attack_time >= JUMP_ATTACK_COOLDOWN:
 
                         last_attack_time = pygame.time.get_ticks()
 
