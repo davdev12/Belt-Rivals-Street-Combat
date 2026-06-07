@@ -1,94 +1,20 @@
 import random
+from random import randint
+from threading import current_thread
+from time import sleep
+
 import pygame
 from sys import exit
 from pathlib import Path
+from PIL import Image
+from PIL.ImageChops import difference
+from django.template.defaultfilters import center
 
-"""class Player(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.player_fall_l = pygame.image.load("images/BlueFist/fall_left.png").convert_alpha()
-        self.player_fall_r = pygame.image.load("images/BlueFist/fall_right.png").convert_alpha()
-        self.player_ko_r = pygame.image.load("images/BlueFist/ko_right.png").convert_alpha()
-        self.player_ko_l = pygame.image.load("images/BlueFist/ko_left.png").convert_alpha()
-        self.player_frontkick_r = pygame.image.load("images/BlueFist/front_kick_right.png").convert_alpha()
-        self.player_frontkick_l = pygame.image.load("images/BlueFist/front_kick_left.png").convert_alpha()
-        self.player_jump_fr = pygame.image.load("images/BlueFist/front_knee_right.png").convert_alpha()
-        self.player_jump_fl = pygame.image.load("images/BlueFist/front_knee_left.png").convert_alpha()
-        self.player_pas_wide_r = pygame.image.load("images/BlueFist/passive_wide_right.png").convert_alpha()
-        self.player_pas_wide_l = pygame.image.load("images/BlueFist/passive_wide_left.png").convert_alpha()
-        player_walk_r_2 = pygame.image.load("images/BlueFist/walk_r2.png").convert_alpha()
-        player_walk_r_1 = pygame.image.load("images/BlueFist/walk_r1.png").convert_alpha()
-        player_walk_r_3 = pygame.image.load("images/BlueFist/walk_r3.png").convert_alpha()
-        player_walk_r_4 = pygame.image.load("images/BlueFist/walk_r4.png").convert_alpha()
-        player_walk_l_2 = pygame.image.load("images/BlueFist/walk_l2.png").convert_alpha()
-        player_walk_l_1 = pygame.image.load("images/BlueFist/walk_l1.png").convert_alpha()
-        player_walk_l_3 = pygame.image.load("images/BlueFist/walk_l3.png").convert_alpha()
-        player_walk_l_4 = pygame.image.load("images/BlueFist/walk_l4.png").convert_alpha()
-        self.player_walk_l = [player_walk_l_1, player_walk_l_2, player_walk_l_3, player_walk_l_4]
-        self.player_walk_r = [player_walk_r_1, player_walk_r_2, player_walk_r_3, player_walk_r_4]
-        self.player_fail_l = [player_pas_wide_l, player_fall_l, player_fall_l, player_ko_l, player_ko_l, player_ko_l]
-        self.player_fail_r = [player_pas_wide_r, player_fall_r, player_fall_r, player_ko_r, player_ko_r, player_ko_r]
-        self.player_index = 0
-        self.direction = 0
-        self.image = self.player_walk_r[self.player_index]
-        self.rect = self.image.get_rect(midbottom = (200, 530))
-        self.gravity = 0
-
-    def player_input(self):
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_a] and self.rect.bottom >= 530:
-            self.rect.x -= 5
-        if keys[pygame.K_d] and self.rect.bottom >= 530:
-            self.rect.x += 5
-
-    def apply_gravity(self):
-        keys = pygame.key.get_pressed()
-
-        # jump
-        if self.rect.bottom < 530:
-            if self.direction == 0:
-                self.image = self.player_jump_fl
-            else:
-                self.image = self.player_jump_fr
-
-        # idle left
-        elif self.direction == 0 and not keys[pygame.K_a]:
-            self.image = self.player_pas_wide_l
-
-        # idle right
-        elif self.direction == 1 and not keys[pygame.K_d]:
-            self.image = self.player_pas_wide_r
-
-        # walk left
-        elif keys[pygame.K_a]:
-            self.direction = 0
-
-            self.player_index += 0.075
-
-            if self.player_index >= len(self.player_walk_l):
-                self.player_index = 0
-
-            self.image = self.player_walk_l[int(self.player_index)]
-
-        # walk right
-        elif keys[pygame.K_d]:
-            self.direction = 1
-
-            self.player_index += 0.075
-
-            if self.player_index >= len(self.player_walk_r):
-                self.player_index = 0
-
-            self.image = self.player_walk_r[int(self.player_index)]
-
-    def update(self):
-        self.player_input()
-        self.apply_gravity()"""
 
 class Skeleton(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        global HIT_COOLDOWN
+        global HIT_COOLDOWN, crouching
         HIT_COOLDOWN = 1000
         self.health = 3
         self.speed = 2
@@ -98,7 +24,8 @@ class Skeleton(pygame.sprite.Sprite):
         self.friction = 0.85
         self.last_hit_time = -HIT_COOLDOWN
         self.slow_start_time = 0
-
+        self.transparency = 0
+        #enemy_overflow = current_enemies - max_enemies
         self.index = 0
         self.direction = 0
 
@@ -165,6 +92,14 @@ class Skeleton(pygame.sprite.Sprite):
             self.sword_down_r,
             self.passive_r
         ]
+
+        self.passive_left = [
+            self.passive_l
+        ]
+
+        self.passive_right = [
+            self.passive_r
+        ]
         self.image = self.passive_r
         self.rect = self.image.get_rect(midbottom=(40, 530))
 
@@ -172,7 +107,7 @@ class Skeleton(pygame.sprite.Sprite):
 
     def animation(self):
 
-        self.index += 0.10
+        self.index += 0.045
 
         if self.direction == 0:
             frames = self.walk_l
@@ -180,11 +115,17 @@ class Skeleton(pygame.sprite.Sprite):
         elif self.direction == 1:
             frames = self.walk_r
 
-        elif self.direction == 2:
+        elif self.direction == 2 and not player_dead:
             frames = self.attack_l
 
-        else:
+        elif self.direction == 3 and not player_dead:
             frames = self.attack_r
+
+        elif self.direction == 2 and player_dead:
+            frames = self.passive_left
+
+        elif self.direction == 3 and player_dead:
+            frames = self.passive_right
 
         if self.index >= len(frames):
             self.index = 0
@@ -249,15 +190,15 @@ class Skeleton(pygame.sprite.Sprite):
         self.last_hit_time = pygame.time.get_ticks()
         self.difference = player_rect.centerx - self.rect.centerx
 
-        if player_attacking and ((attack_direction == 0 and self.difference > 100) or (attack_direction == 1 and self.difference < 100)):
 
+        if player_attacking and ((attack_direction == 0 and self.difference > 100) or (attack_direction == 1 and self.difference < 100)):
+            #hit_sound.play()
             if player_rect.bottom < 530:
                 self.health -= 2
                 score += 20
             elif player_rect.bottom >= 530:
                 self.health -= 1
                 score += 10
-
             difference = player_rect.centerx - self.rect.centerx
 
             if player_rect.bottom < 530:
@@ -275,12 +216,12 @@ class Skeleton(pygame.sprite.Sprite):
             if player_crouching:
                 self.speed = self.slow_speed
                 self.slow_start_time = pygame.time.get_ticks()
-
         elif self.direction in [2, 3]:
 
             pending_damage = True
             health_bar_mode = "damage"
             health_bar_mode_started = pygame.time.get_ticks()
+
 
     def slow(self):
 
@@ -290,16 +231,19 @@ class Skeleton(pygame.sprite.Sprite):
                 self.speed = self.normal_speed
 
     def update(self, player_rect, player_mask):
+        global score
 
         self.slow()
-
         self.knockback_func()
-
         self.move(player_rect)
-
         self.animation()
-
         self.collision(player_rect, player_mask)
+
+        if self.health <= 0:
+            score += 20
+            self.kill()
+
+
 def display_time():
     current_time = int(pygame.time.get_ticks() / 1000) - since_start_time
     time_surf = pixel_font.render("time: " + f"{current_time}", False, (64, 64, 64))
@@ -312,6 +256,40 @@ def display_score():
     score_rect = score_surf.get_rect(center = (750, 15))
     screen.blit(score_surf, score_rect)
     # print(current_time)
+def display_wave(new_wave):
+    wave_font = pygame.font.Font("fonts/pixeltype.ttf", 100)
+    wave_surf = wave_font.render("Wave " + f"{new_wave}", False, (18, 99, 230))
+    wave_rect = wave_surf.get_rect(center = (450, 275))
+    screen.blit(wave_surf, wave_rect)
+
+def spawn_enemies():
+    global wave, max_enemies
+    global wave_started, wave_start_time
+
+    if len(skeletons) == 0:
+
+        if not wave_started:
+            wave += 1
+            wave_start_time = pygame.time.get_ticks()
+            wave_started = True
+
+        display_wave(wave)
+
+        if pygame.time.get_ticks() - wave_start_time >= 3000:
+
+            for i in range(max_enemies):
+                enemy = Skeleton()
+
+                if random.randint(0, 1):
+                    enemy.rect.centerx = random.randint(1000, 1300)
+                else:
+                    enemy.rect.centerx = random.randint(-300, -100)
+
+                skeletons.add(enemy)
+
+            max_enemies += 1
+            wave_started = False
+
 
 def player_ko():
     global player_surf, player_index, game_state, player_rect
@@ -363,11 +341,13 @@ def player_animation():
     elif player_rect.bottom < 530 and player_direction == 1:
         player_surf = player_jump_fr
 
-    elif player_direction == 0 and not keys[pygame.K_a]:
+    elif player_direction == 1 and not keys[pygame.K_d] or (keys[pygame.K_a] and keys[pygame.K_d]):
+        player_surf = player_pas_wide_r
+
+    elif player_direction == 0 and not keys[pygame.K_a] or (keys[pygame.K_a] and keys[pygame.K_d]):
         player_surf = player_pas_wide_l
 
-    elif player_direction == 1 and not keys[pygame.K_d]:
-        player_surf = player_pas_wide_r
+
 
     # walk left
     elif player_direction == 0 and keys[pygame.K_a]:
@@ -389,17 +369,26 @@ def player_animation():
         player_surf = player_walk_r[int(player_index)]
 
 pygame.init()
+pygame.mixer.init()
 screen = pygame.display.set_mode((901, 557))
 pygame.display.set_caption("Belt Rivals: Street Combat")
 icon = pygame.image.load("images/redtech.png").convert_alpha()
 pygame.display.set_icon(icon)
 clock = pygame.time.Clock()
-game_state = 0
+game_state = -1
 score = 0
 arrow_y = 0
+wave = 0
+wave_started = False
+wave_start_time = 0
+logo_alpha = 0
+sound_played = False
+skeletons = pygame.sprite.Group()
 
-skeleton = pygame.sprite.GroupSingle()
-skeleton.add(Skeleton())
+
+
+
+
 
 #player = pygame.sprite.GroupSingle()
 #player.add(Player())
@@ -410,6 +399,15 @@ since_over_time = 0
 since_menu_time = 0
 
 keys = pygame.key.get_pressed()
+
+logo_surf = pygame.transform.scale(pygame.image.load("images/redtech.png"), (310, 310)).convert()
+logo_rect = logo_surf.get_rect(center = (450, 278))
+#hit_sound = pygame.mixer.Sound("sounds/kick.MP3")
+button_sound = pygame.mixer.Sound("sounds/menu_button.MP3")
+menu_music = pygame.mixer.Sound("sounds/Street Fighter II Arcade Music - Opening Theme - CPS1.mp3")
+jump_sound = pygame.mixer.Sound("sounds/action_jump.mp3")
+skeleton_sound = pygame.mixer.Sound("sounds/minecraft-bruh-sound-effect-2-1.mp3")
+start_sound = pygame.mixer.Sound("sounds/capcom-intro.mp3")
 pixel_font = pygame.font.Font("fonts/pixeltype.ttf", 50)
 
 # image definitions
@@ -433,6 +431,10 @@ player_ko_r = pygame.image.load("images/BlueFist/ko_right.png").convert_alpha()
 player_ko_l = pygame.image.load("images/BlueFist/ko_left.png").convert_alpha()
 player_frontkick_r = pygame.image.load("images/BlueFist/front_kick_right.png").convert_alpha()
 player_frontkick_l = pygame.image.load("images/BlueFist/front_kick_left.png").convert_alpha()
+player_backkick_r = pygame.image.load("images/BlueFist/back_kick_right.png").convert_alpha()
+player_backkick_l = pygame.image.load("images/BlueFist/back_kick_left.png").convert_alpha()
+player_backlift_r = pygame.image.load("images/BlueFist/back_knee_right.png").convert_alpha()
+player_backlift_l = pygame.image.load("images/BlueFist/back_knee_left.png").convert_alpha()
 player_jump_fr = pygame.image.load("images/BlueFist/front_knee_right.png").convert_alpha()
 player_jump_fl = pygame.image.load("images/BlueFist/front_knee_left.png").convert_alpha()
 player_pas_wide_r = pygame.image.load("images/BlueFist/passive_wide_right.png").convert_alpha()
@@ -450,7 +452,7 @@ player_walk_r = [player_walk_r_1, player_walk_r_2, player_walk_r_3, player_walk_
 player_fail_l = [player_pas_wide_l, player_fall_l, player_ko_l]
 player_fail_r = [player_pas_wide_r, player_fall_r, player_ko_r]
 
-player_crouching = 0
+crouching = 0
 player_index = 0
 player_rect = player_pas_wide_l.get_rect(midbottom = (700, 530))
 player_gravity = 0
@@ -458,8 +460,7 @@ player_attacking = 0
 pos_difference = 0
 player_dead = False
 ko_start_time = 0
-
-
+music_played = False
 
 
 
@@ -490,9 +491,12 @@ DAMAGE_BAR_TIME = 350
 DAMAGE_DELAY = 0
 ATTACK_TIME = 500
 ATTACK_COOLDOWN = 600
+JUMP_ATTACK_COOLDOWN = 1200
 #SKELETON_HEALTH = 300
 #FRICTION = 0.85
 player_health = MAX_PLAYER_HEALTH
+max_enemies = 4
+enemy_overflow = 0
 
 NORMAL_SKELETON_SPEED = 2
 SLOW_SKELETON_SPEED = 1
@@ -549,7 +553,16 @@ while True:
                     arrow_y = 0
             # actual in-game processes:
             if game_state == 1:
+                """enemy_overflow = current_enemies - max_enemies
 
+                if enemy_overflow > 0:
+                    for i, skeleton in enumerate(skeletons):
+                        if i >= enemy_overflow:
+                            break
+
+                        skeleton.kill()
+                        current_enemies -= 1
+"""
                 # JUMP left
                 if (event.key == pygame.K_w and player_rect.bottom >= 530) and not player_dead and not player_attacking:
                     if player_direction == 0:
@@ -559,7 +572,7 @@ while True:
                         player_gravity = -20
                         player_rect.x += 30
                 # KICK
-                elif event.key == pygame.K_j and player_rect.bottom >= 530  and player_crouching == 0 and not player_dead:
+                elif event.key == pygame.K_j and player_rect.bottom >= 530  and not player_crouching and not player_dead:
                     if pygame.time.get_ticks() - last_attack_time >= ATTACK_COOLDOWN:
 
                         last_attack_time = pygame.time.get_ticks()
@@ -575,8 +588,8 @@ while True:
                         else:
                             player_surf = player_frontkick_r
 
-                elif event.key == pygame.K_j and player_rect.bottom < 530  and player_crouching == 0  and not player_dead:
-                    if pygame.time.get_ticks() - last_attack_time >= ATTACK_COOLDOWN:
+                elif event.key == pygame.K_j and player_rect.bottom < 530  and not player_crouching  and not player_dead:
+                    if pygame.time.get_ticks() - last_attack_time >= JUMP_ATTACK_COOLDOWN:
 
                         last_attack_time = pygame.time.get_ticks()
 
@@ -609,7 +622,7 @@ while True:
                             player_surf = player_lowkick_r
 
             if event.key == pygame.K_SPACE:
-                if game_state == 0 and arrow_y == 0:
+                if game_state == 0 and arrow_y == 0 and pygame.time.get_ticks() >= 6000:
 
                     game_state = 1
                     player_health = MAX_PLAYER_HEALTH
@@ -628,7 +641,23 @@ while True:
                     if pygame.time.get_ticks() - since_over_time > 000:
                         game_state = 0
 
+    if sound_played == False:
+        start_sound.play()
+        sound_played = True
+    if game_state == -1:
+        screen.fill((0, 0, 0))
+
+        logo_surf.set_alpha(int(logo_alpha))
+        screen.blit(logo_surf, logo_rect)
+
+        logo_alpha += 1.06
+
+        if logo_alpha >= 300:
+            game_state = 0
     if game_state == 0:
+        if not music_played:
+            menu_music.play()
+            music_played = True
         screen.blit(startmenu_surf, (0, 0))
 
         screen.blit(arrow_surf, (0, arrow_y))
@@ -637,6 +666,8 @@ while True:
 
     if game_state == 1:
         screen.blit(bg_surf,(0, 0))
+
+        spawn_enemies()
 
         # restore speed after slow expires
         if skeleton_speed == SLOW_SKELETON_SPEED:
@@ -728,7 +759,6 @@ while True:
         #
 
         #if skeleton_rect.left > 900: skeleton_rect.right = 0
-
         if not player_dead and keys[pygame.K_a] and player_rect.bottom >= 530 and player_attacking == 0 and player_crouching == 0 and not player_rect.left < -600:
             player_direction = 0
             player_rect.x -= 5
@@ -737,10 +767,11 @@ while True:
             player_direction = 1
             player_rect.x += 5
 
-        if not player_dead:
+        #if not player_dead:
             #skeleton_animation()
-            skeleton.update(player_rect, player_mask)
-            skeleton.draw(screen)
+
+        skeletons.update(player_rect, player_mask)
+        skeletons.draw(screen)
 
         # player_rect.x -= 1
         #if player_rect.right < 0: player_rect.left = 901
