@@ -192,7 +192,7 @@ class Skeleton(pygame.sprite.Sprite):
 
 
         if player_attacking and ((attack_direction == 0 and self.difference > 100) or (attack_direction == 1 and self.difference < 100)):
-            #hit_sound.play()
+            hit_sound.play()
             if player_rect.bottom < 530:
                 self.health -= 2
                 score += 20
@@ -295,7 +295,8 @@ def player_ko():
     global player_surf, player_index, game_state, player_rect
 
     player_index += 0.025
-
+    game_music.stop()
+    #ko_sound.play()
     if player_direction == 0:
 
         if player_index >= len(player_fail_l):
@@ -370,7 +371,7 @@ def player_animation():
 
 pygame.init()
 pygame.mixer.init()
-screen = pygame.display.set_mode((901, 557))
+screen = pygame.display.set_mode((901, 557),pygame.RESIZABLE)
 pygame.display.set_caption("Belt Rivals: Street Combat")
 icon = pygame.image.load("images/redtech.png").convert_alpha()
 pygame.display.set_icon(icon)
@@ -403,21 +404,26 @@ keys = pygame.key.get_pressed()
 logo_surf = pygame.transform.scale(pygame.image.load("images/redtech.png"), (310, 310)).convert()
 logo_rect = logo_surf.get_rect(center = (450, 278))
 
+#ko_sound = pygame.mixer.Sound("sounds/Street Fighter Ryu K.O Death Sound.mp3")
+game_over_music = pygame.mixer.Sound("sounds/Green Beret 1985, Konami - Game Over (Music).mp3")
+whoosh = pygame.mixer.Sound("sounds/whoosh-wind.mp3")
 hit_sound = pygame.mixer.Sound("sounds/kick.MP3")
+hit_sound.set_volume(0.5)
 game_music = pygame.mixer.Sound("sounds/TMNT Turtles In Time Re-Shelled Main Menu Theme.mp3")
 game_music.set_volume(0.5)
 button_sound = pygame.mixer.Sound("sounds/coin_1.mp3")
 button_sound.set_volume(0.2)
 menu_music = pygame.mixer.Sound("sounds/Street Fighter II SNES-Ken Stage.mp3")
 menu_music.set_volume(0.3)
-jump_sound = pygame.mixer.Sound("sounds/action_jump.mp3")
-skeleton_sound = pygame.mixer.Sound("sounds/minecraft-bruh-sound-effect-2-1.mp3")
+#jump_sound = pygame.mixer.Sound("sounds/action_jump.mp3")
+#skeleton_sound = pygame.mixer.Sound("sounds/minecraft-bruh-sound-effect-2-1.mp3")
 start_sound = pygame.mixer.Sound("sounds/capcom-intro.mp3")
 pixel_font = pygame.font.Font("fonts/pixeltype.ttf", 50)
 
 # image definitions
 startmenu_surf = pygame.image.load("images/Startmenu.png").convert()
 bg_surf = pygame.image.load("images/background1.png").convert()
+night_surf = pygame.image.load("images/night-bg1.png")
 gameover_surf = pygame.image.load("images/gameover.PNG").convert()
 arrow_surf = pygame.image.load("images/choosing_arrow.png").convert_alpha()
 # score_surf = pixel_font.render("level", False, ("Black"))
@@ -504,7 +510,10 @@ player_health = MAX_PLAYER_HEALTH
 max_enemies = 4
 enemy_overflow = 0
 
-NORMAL_SKELETON_SPEED = 2
+if screen.blit(night_surf, (0, 0)):
+    NORMAL_SKELETON_SPEED = 3
+else:
+    NORMAL_SKELETON_SPEED = 2
 SLOW_SKELETON_SPEED = 1
 SLOW_DURATION = 2500  # milliseconds (2 sec)
 
@@ -546,6 +555,11 @@ while True:
     keys = pygame.key.get_pressed()
 
     for event in pygame.event.get():
+        if event.type == pygame.VIDEORESIZE:
+            screen = pygame.display.set_mode(
+                (event.w, event.h),
+                pygame.RESIZABLE
+            )
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
@@ -588,7 +602,6 @@ while True:
                     if pygame.time.get_ticks() - last_attack_time >= ATTACK_COOLDOWN:
 
                         last_attack_time = pygame.time.get_ticks()
-
                         player_attacking = 1
                         attack_start_time = pygame.time.get_ticks()
 
@@ -597,6 +610,7 @@ while True:
 
                         if attack_direction == 0:
                             player_surf = player_frontkick_l
+
                         else:
                             player_surf = player_frontkick_r
 
@@ -604,7 +618,7 @@ while True:
                     if pygame.time.get_ticks() - last_attack_time >= JUMP_ATTACK_COOLDOWN:
 
                         last_attack_time = pygame.time.get_ticks()
-
+                        #player_rect.x += 30
                         player_attacking = 1
                         attack_start_time = pygame.time.get_ticks()
 
@@ -612,9 +626,13 @@ while True:
                         attack_direction = player_direction
 
                         if attack_direction == 0:
+                            #player_rect.x -= 30
                             player_surf = player_jumpkick_l
+
                         else:
+                            # player_rect.x += 30
                             player_surf = player_jumpkick_r
+
 
                             ############### LOW KICK
                 elif event.key == pygame.K_j and player_crouching == 1 and not player_dead:
@@ -627,7 +645,7 @@ while True:
 
                         # LOCK direction during attack
                         attack_direction = player_direction
-
+                        whoosh.play()
                         if attack_direction == 0:
                             player_surf = player_lowkick_l
                         else:
@@ -651,7 +669,7 @@ while True:
 
                 elif game_state == 2:
 
-                    if pygame.time.get_ticks() - since_over_time > 000:
+                    if pygame.time.get_ticks() - since_over_time > 3000:
                         game_state = 0
 
     if sound_played == False:
@@ -663,7 +681,7 @@ while True:
         logo_surf.set_alpha(int(logo_alpha))
         screen.blit(logo_surf, logo_rect)
 
-        logo_alpha += 1.06
+        logo_alpha += 1.05
 
         if logo_alpha >= 300:
             game_state = 0
@@ -688,8 +706,10 @@ while True:
         if not banger_played:
             game_music.play()
             banger_played = True
-        screen.blit(bg_surf,(0, 0))
-
+        if not wave % 3 == 0 and not wave % 4 == 0:
+            screen.blit(bg_surf,(0, 0))
+        elif wave % 3 == 0 or wave % 4 == 0:
+            screen.blit(night_surf, (0, 0))
         spawn_enemies()
 
         # restore speed after slow expires
@@ -819,6 +839,7 @@ while True:
         #player.update()
 
     if game_state == 2:
+        #game_over_music.play()
         screen.blit(gameover_surf, (0, 0))
 
     pygame.display.update()
