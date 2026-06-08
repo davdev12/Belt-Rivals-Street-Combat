@@ -405,7 +405,7 @@ logo_surf = pygame.transform.scale(pygame.image.load("images/redtech.png"), (310
 logo_rect = logo_surf.get_rect(center = (450, 278))
 
 #ko_sound = pygame.mixer.Sound("sounds/Street Fighter Ryu K.O Death Sound.mp3")
-game_over_music = pygame.mixer.Sound("sounds/Green Beret 1985, Konami - Game Over (Music).mp3")
+#game_over_music = pygame.mixer.Sound("sounds/Green Beret 1985, Konami - Game Over (Music).mp3")
 whoosh = pygame.mixer.Sound("sounds/whoosh-wind.mp3")
 hit_sound = pygame.mixer.Sound("sounds/kick.MP3")
 hit_sound.set_volume(0.5)
