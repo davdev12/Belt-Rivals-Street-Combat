@@ -384,8 +384,8 @@ wave_start_time = 0
 logo_alpha = 0
 sound_played = False
 skeletons = pygame.sprite.Group()
-
-
+healed = False
+heal_wave = None
 
 
 
@@ -402,9 +402,14 @@ keys = pygame.key.get_pressed()
 
 logo_surf = pygame.transform.scale(pygame.image.load("images/redtech.png"), (310, 310)).convert()
 logo_rect = logo_surf.get_rect(center = (450, 278))
-#hit_sound = pygame.mixer.Sound("sounds/kick.MP3")
-button_sound = pygame.mixer.Sound("sounds/menu_button.MP3")
-menu_music = pygame.mixer.Sound("sounds/Street Fighter II Arcade Music - Opening Theme - CPS1.mp3")
+
+hit_sound = pygame.mixer.Sound("sounds/kick.MP3")
+game_music = pygame.mixer.Sound("sounds/TMNT Turtles In Time Re-Shelled Main Menu Theme.mp3")
+game_music.set_volume(0.5)
+button_sound = pygame.mixer.Sound("sounds/coin_1.mp3")
+button_sound.set_volume(0.2)
+menu_music = pygame.mixer.Sound("sounds/Street Fighter II SNES-Ken Stage.mp3")
+menu_music.set_volume(0.3)
 jump_sound = pygame.mixer.Sound("sounds/action_jump.mp3")
 skeleton_sound = pygame.mixer.Sound("sounds/minecraft-bruh-sound-effect-2-1.mp3")
 start_sound = pygame.mixer.Sound("sounds/capcom-intro.mp3")
@@ -461,6 +466,7 @@ pos_difference = 0
 player_dead = False
 ko_start_time = 0
 music_played = False
+banger_played = False
 
 
 
@@ -547,9 +553,15 @@ while True:
             if game_state == 0:
 
                 if event.key == pygame.K_DOWN or event.key == pygame.K_s:
+                    if not arrow_y == 70:
+                        button_sound.stop()
+                        button_sound.play()
                     arrow_y = 70
 
                 if event.key == pygame.K_UP or event.key == pygame.K_w:
+                    if not arrow_y == 0:
+                        button_sound.stop()
+                        button_sound.play()
                     arrow_y = 0
             # actual in-game processes:
             if game_state == 1:
@@ -623,7 +635,8 @@ while True:
 
             if event.key == pygame.K_SPACE:
                 if game_state == 0 and arrow_y == 0 and pygame.time.get_ticks() >= 6000:
-
+                    button_sound.stop()
+                    button_sound.play()
                     game_state = 1
                     player_health = MAX_PLAYER_HEALTH
                     player_dead = False
@@ -663,8 +676,18 @@ while True:
         screen.blit(arrow_surf, (0, arrow_y))
     player_mask = pygame.mask.from_surface(player_surf)
     #skeleton_mask = pygame.mask.from_surface(skeleton_surf)
-
+    #music_played = False
     if game_state == 1:
+        if wave % 3 == 0 and not healed:
+            player_health = MAX_PLAYER_HEALTH
+            healed = True
+            heal_wave = wave
+        if wave == heal_wave + 1:
+            healed = False
+        menu_music.stop()
+        if not banger_played:
+            game_music.play()
+            banger_played = True
         screen.blit(bg_surf,(0, 0))
 
         spawn_enemies()
