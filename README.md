@@ -1,6 +1,6 @@
 
 # Belt Rivals: Street Combat
-<Strong>A Python project based on pygame</Strong>
+
 <img width="901" height="557" alt="background1" src="https://github.com/user-attachments/assets/052cf1e8-6e59-44bb-92a8-ac937372e9c1" />
 
 <Strong>Standard background</Strong>
