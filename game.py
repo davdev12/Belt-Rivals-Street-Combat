@@ -9,7 +9,16 @@ from pathlib import Path
 from PIL import Image
 from PIL.ImageChops import difference
 from django.template.defaultfilters import center
+import os
+import sys
 
+def resource_path(relative_path):
+    if hasattr(sys, "_MEIPASS"):
+        base_path = sys._MEIPASS  # PyInstaller temp folder
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    return os.path.join(base_path, relative_path)
 
 class Skeleton(pygame.sprite.Sprite):
     def __init__(self):
@@ -243,24 +252,57 @@ class Skeleton(pygame.sprite.Sprite):
             score += 20
             self.kill()
 
+def reset_game():
+    global score
+    global wave
+    global max_enemies
+    global player_health
+    global player_dead
+    global player_rect
+    global player_gravity
+    global player_attacking
+    global game_state
+    global wave_started
+    global logo_alpha
+    global sound_played
 
+    pygame.mixer.stop()
+
+    score = 0
+    wave = 0
+    max_enemies = 4
+    logo_alpha = 0
+    sound_played = 0
+
+    player_health = MAX_PLAYER_HEALTH
+    player_dead = False
+    player_attacking = False
+    player_gravity = 0
+
+    player_rect.midbottom = (700, 530)
+
+    wave_started = False
+
+    skeletons.empty()
+
+    game_state = -1
 def display_time():
     current_time = int(pygame.time.get_ticks() / 1000) - since_start_time
     time_surf = pixel_font.render("time: " + f"{current_time}", False, (64, 64, 64))
     time_rect = time_surf.get_rect(center = (550, 15))
-    screen.blit(time_surf, time_rect)
+    game_surface.blit(time_surf, time_rect)
     # print(current_time)
 
 def display_score():
     score_surf = pixel_font.render("score: " + f"{score}", False, (64, 64, 64))
     score_rect = score_surf.get_rect(center = (750, 15))
-    screen.blit(score_surf, score_rect)
+    game_surface.blit(score_surf, score_rect)
     # print(current_time)
 def display_wave(new_wave):
     wave_font = pygame.font.Font("fonts/pixeltype.ttf", 100)
     wave_surf = wave_font.render("Wave " + f"{new_wave}", False, (18, 99, 230))
     wave_rect = wave_surf.get_rect(center = (450, 275))
-    screen.blit(wave_surf, wave_rect)
+    game_surface.blit(wave_surf, wave_rect)
 
 def spawn_enemies():
     global wave, max_enemies
@@ -371,9 +413,13 @@ def player_animation():
 
 pygame.init()
 pygame.mixer.init()
-screen = pygame.display.set_mode((901, 557),pygame.RESIZABLE)
+VIRTUAL_W = 901
+VIRTUAL_H = 557
+
+screen = pygame.display.set_mode((901, 557), pygame.RESIZABLE)
+game_surface = pygame.Surface((VIRTUAL_W, VIRTUAL_H))
 pygame.display.set_caption("Belt Rivals: Street Combat")
-icon = pygame.image.load("images/redtech.png").convert_alpha()
+icon = pygame.image.load(resource_path("images/redtech.png")).convert_alpha()
 pygame.display.set_icon(icon)
 clock = pygame.time.Clock()
 game_state = -1
@@ -401,63 +447,63 @@ since_menu_time = 0
 
 keys = pygame.key.get_pressed()
 
-logo_surf = pygame.transform.scale(pygame.image.load("images/redtech.png"), (310, 310)).convert()
+logo_surf = pygame.transform.scale(pygame.image.load(resource_path("images/redtech.png")), (310, 310)).convert()
 logo_rect = logo_surf.get_rect(center = (450, 278))
 
 #ko_sound = pygame.mixer.Sound("sounds/Street Fighter Ryu K.O Death Sound.mp3")
 #game_over_music = pygame.mixer.Sound("sounds/Green Beret 1985, Konami - Game Over (Music).mp3")
-whoosh = pygame.mixer.Sound("sounds/whoosh-wind.mp3")
-hit_sound = pygame.mixer.Sound("sounds/kick.MP3")
+whoosh = pygame.mixer.Sound(resource_path("sounds/whoosh-wind.mp3"))
+hit_sound = pygame.mixer.Sound(resource_path("sounds/kick.MP3"))
 hit_sound.set_volume(0.5)
-game_music = pygame.mixer.Sound("sounds/TMNT Turtles In Time Re-Shelled Main Menu Theme.mp3")
+game_music = pygame.mixer.Sound(resource_path("sounds/TMNT Turtles In Time Re-Shelled Main Menu Theme.mp3"))
 game_music.set_volume(0.5)
-button_sound = pygame.mixer.Sound("sounds/coin_1.mp3")
+button_sound = pygame.mixer.Sound(resource_path("sounds/coin_1.mp3"))
 button_sound.set_volume(0.2)
-menu_music = pygame.mixer.Sound("sounds/Street Fighter II SNES-Ken Stage.mp3")
+menu_music = pygame.mixer.Sound(resource_path("sounds/Street Fighter II SNES-Ken Stage.mp3"))
 menu_music.set_volume(0.3)
 #jump_sound = pygame.mixer.Sound("sounds/action_jump.mp3")
 #skeleton_sound = pygame.mixer.Sound("sounds/minecraft-bruh-sound-effect-2-1.mp3")
-start_sound = pygame.mixer.Sound("sounds/capcom-intro.mp3")
-pixel_font = pygame.font.Font("fonts/pixeltype.ttf", 50)
+start_sound = pygame.mixer.Sound(resource_path("sounds/capcom-intro.mp3"))
+pixel_font = pygame.font.Font(resource_path("fonts/pixeltype.ttf"), 50)
 
 # image definitions
-startmenu_surf = pygame.image.load("images/Startmenu.png").convert()
-bg_surf = pygame.image.load("images/background1.png").convert()
-night_surf = pygame.image.load("images/night-bg1.png")
-gameover_surf = pygame.image.load("images/gameover.PNG").convert()
-arrow_surf = pygame.image.load("images/choosing_arrow.png").convert_alpha()
+startmenu_surf = pygame.image.load(resource_path("images/Startmenu.png")).convert()
+bg_surf = pygame.image.load(resource_path("images/background1.png")).convert()
+night_surf = pygame.image.load(resource_path("images/night-bg1.png"))
+gameover_surf = pygame.image.load(resource_path("images/gameover.PNG")).convert()
+arrow_surf = pygame.image.load(resource_path("images/choosing_arrow.png")).convert_alpha()
 # score_surf = pixel_font.render("level", False, ("Black"))
 # score_rect = score_surf.get_rect(center = (600, 50))
 
 # All player frames:
-player_lowkick_r = pygame.transform.scale(pygame.image.load("images/BlueFist/back_lowkick_right.png"), (310, 310)).convert_alpha()
-player_lowkick_l = pygame.transform.scale(pygame.image.load("images/BlueFist/back_lowkick_left.png"), (310, 310)).convert_alpha()
-player_crouch_r = pygame.transform.scale(pygame.image.load("images/BlueFist/crouch_right.png"), (310, 310)).convert_alpha()
-player_crouch_l = pygame.transform.scale(pygame.image.load("images/BlueFist/crouch_left.png"), (310, 310)).convert_alpha()
-player_jumpkick_r = pygame.image.load("images/BlueFist/front_jumpkick_right.png").convert_alpha()
-player_jumpkick_l = pygame.image.load("images/BlueFist/front_jumpkick_left.png").convert_alpha()
-player_fall_l = pygame.image.load("images/BlueFist/fall_left.png").convert_alpha()
-player_fall_r = pygame.image.load("images/BlueFist/fall_right.png").convert_alpha()
-player_ko_r = pygame.image.load("images/BlueFist/ko_right.png").convert_alpha()
-player_ko_l = pygame.image.load("images/BlueFist/ko_left.png").convert_alpha()
-player_frontkick_r = pygame.image.load("images/BlueFist/front_kick_right.png").convert_alpha()
-player_frontkick_l = pygame.image.load("images/BlueFist/front_kick_left.png").convert_alpha()
-player_backkick_r = pygame.image.load("images/BlueFist/back_kick_right.png").convert_alpha()
-player_backkick_l = pygame.image.load("images/BlueFist/back_kick_left.png").convert_alpha()
-player_backlift_r = pygame.image.load("images/BlueFist/back_knee_right.png").convert_alpha()
-player_backlift_l = pygame.image.load("images/BlueFist/back_knee_left.png").convert_alpha()
-player_jump_fr = pygame.image.load("images/BlueFist/front_knee_right.png").convert_alpha()
-player_jump_fl = pygame.image.load("images/BlueFist/front_knee_left.png").convert_alpha()
-player_pas_wide_r = pygame.image.load("images/BlueFist/passive_wide_right.png").convert_alpha()
-player_pas_wide_l = pygame.image.load("images/BlueFist/passive_wide_left.png").convert_alpha()
-player_walk_r_2 = pygame.image.load("images/BlueFist/walk_r2.png").convert_alpha()
-player_walk_r_1 = pygame.image.load("images/BlueFist/walk_r1.png").convert_alpha()
-player_walk_r_3 = pygame.image.load("images/BlueFist/walk_r3.png").convert_alpha()
-player_walk_r_4 = pygame.image.load("images/BlueFist/walk_r4.png").convert_alpha()
-player_walk_l_2 = pygame.image.load("images/BlueFist/walk_l2.png").convert_alpha()
-player_walk_l_1 = pygame.image.load("images/BlueFist/walk_l1.png").convert_alpha()
-player_walk_l_3 = pygame.image.load("images/BlueFist/walk_l3.png").convert_alpha()
-player_walk_l_4 = pygame.image.load("images/BlueFist/walk_l4.png").convert_alpha()
+player_lowkick_r = pygame.transform.scale(pygame.image.load(resource_path("images/BlueFist/back_lowkick_right.png")), (310, 310)).convert_alpha()
+player_lowkick_l = pygame.transform.scale(pygame.image.load(resource_path("images/BlueFist/back_lowkick_left.png")), (310, 310)).convert_alpha()
+player_crouch_r = pygame.transform.scale(pygame.image.load(resource_path("images/BlueFist/crouch_right.png")), (310, 310)).convert_alpha()
+player_crouch_l = pygame.transform.scale(pygame.image.load(resource_path("images/BlueFist/crouch_left.png")), (310, 310)).convert_alpha()
+player_jumpkick_r = pygame.image.load(resource_path("images/BlueFist/front_jumpkick_right.png")).convert_alpha()
+player_jumpkick_l = pygame.image.load(resource_path("images/BlueFist/front_jumpkick_left.png")).convert_alpha()
+player_fall_l = pygame.image.load(resource_path("images/BlueFist/fall_left.png")).convert_alpha()
+player_fall_r = pygame.image.load(resource_path("images/BlueFist/fall_right.png")).convert_alpha()
+player_ko_r = pygame.image.load(resource_path("images/BlueFist/ko_right.png")).convert_alpha()
+player_ko_l = pygame.image.load(resource_path("images/BlueFist/ko_left.png")).convert_alpha()
+player_frontkick_r = pygame.image.load(resource_path("images/BlueFist/front_kick_right.png")).convert_alpha()
+player_frontkick_l = pygame.image.load(resource_path("images/BlueFist/front_kick_left.png")).convert_alpha()
+player_backkick_r = pygame.image.load(resource_path("images/BlueFist/back_kick_right.png")).convert_alpha()
+player_backkick_l = pygame.image.load(resource_path("images/BlueFist/back_kick_left.png")).convert_alpha()
+player_backlift_r = pygame.image.load(resource_path("images/BlueFist/back_knee_right.png")).convert_alpha()
+player_backlift_l = pygame.image.load(resource_path("images/BlueFist/back_knee_left.png")).convert_alpha()
+player_jump_fr = pygame.image.load(resource_path("images/BlueFist/front_knee_right.png")).convert_alpha()
+player_jump_fl = pygame.image.load(resource_path("images/BlueFist/front_knee_left.png")).convert_alpha()
+player_pas_wide_r = pygame.image.load(resource_path("images/BlueFist/passive_wide_right.png")).convert_alpha()
+player_pas_wide_l = pygame.image.load(resource_path("images/BlueFist/passive_wide_left.png")).convert_alpha()
+player_walk_r_2 = pygame.image.load(resource_path("images/BlueFist/walk_r2.png")).convert_alpha()
+player_walk_r_1 = pygame.image.load(resource_path("images/BlueFist/walk_r1.png")).convert_alpha()
+player_walk_r_3 = pygame.image.load(resource_path("images/BlueFist/walk_r3.png")).convert_alpha()
+player_walk_r_4 = pygame.image.load(resource_path("images/BlueFist/walk_r4.png")).convert_alpha()
+player_walk_l_2 = pygame.image.load(resource_path("images/BlueFist/walk_l2.png")).convert_alpha()
+player_walk_l_1 = pygame.image.load(resource_path("images/BlueFist/walk_l1.png")).convert_alpha()
+player_walk_l_3 = pygame.image.load(resource_path("images/BlueFist/walk_l3.png")).convert_alpha()
+player_walk_l_4 = pygame.image.load(resource_path("images/BlueFist/walk_l4.png")).convert_alpha()
 player_walk_l = [player_walk_l_1, player_walk_l_2, player_walk_l_3, player_walk_l_4]
 player_walk_r = [player_walk_r_1, player_walk_r_2, player_walk_r_3, player_walk_r_4]
 player_fail_l = [player_pas_wide_l, player_fall_l, player_ko_l]
@@ -510,7 +556,7 @@ player_health = MAX_PLAYER_HEALTH
 max_enemies = 4
 enemy_overflow = 0
 
-if screen.blit(night_surf, (0, 0)):
+if game_surface.blit(night_surf, (0, 0)):
     NORMAL_SKELETON_SPEED = 3
 else:
     NORMAL_SKELETON_SPEED = 2
@@ -536,7 +582,7 @@ health_bar_frames = {
     "damage": {}
 }
 
-for health_bar_path in Path("images/health_bar").glob("hp_*_*.png"):
+for health_bar_path in Path(resource_path("images/health_bar")).glob("hp_*_*.png"):
     _, health_value, health_mode = health_bar_path.stem.split("_")
     health_bar_frames[health_mode][int(health_value)] = pygame.image.load(health_bar_path).convert_alpha()
 
@@ -556,14 +602,13 @@ while True:
 
     for event in pygame.event.get():
         if event.type == pygame.VIDEORESIZE:
-            screen = pygame.display.set_mode(
-                (event.w, event.h),
-                pygame.RESIZABLE
-            )
+            screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                reset_game()
             if game_state == 0:
 
                 if event.key == pygame.K_DOWN or event.key == pygame.K_s:
@@ -670,16 +715,19 @@ while True:
                 elif game_state == 2:
 
                     if pygame.time.get_ticks() - since_over_time > 3000:
+                        music_played = False
+                        banger_played = False
                         game_state = 0
 
-    if sound_played == False:
+
+    if not sound_played:
         start_sound.play()
         sound_played = True
     if game_state == -1:
-        screen.fill((0, 0, 0))
+        game_surface.fill((0, 0, 0))
 
         logo_surf.set_alpha(int(logo_alpha))
-        screen.blit(logo_surf, logo_rect)
+        game_surface.blit(logo_surf, logo_rect)
 
         logo_alpha += 1.05
 
@@ -689,9 +737,9 @@ while True:
         if not music_played:
             menu_music.play()
             music_played = True
-        screen.blit(startmenu_surf, (0, 0))
+        game_surface.blit(startmenu_surf, (0, 0))
 
-        screen.blit(arrow_surf, (0, arrow_y))
+        game_surface.blit(arrow_surf, (0, arrow_y))
     player_mask = pygame.mask.from_surface(player_surf)
     #skeleton_mask = pygame.mask.from_surface(skeleton_surf)
     #music_played = False
@@ -707,9 +755,9 @@ while True:
             game_music.play()
             banger_played = True
         if not wave % 3 == 0 and not wave % 4 == 0:
-            screen.blit(bg_surf,(0, 0))
+            game_surface.blit(bg_surf,(0, 0))
         elif wave % 3 == 0 or wave % 4 == 0:
-            screen.blit(night_surf, (0, 0))
+            game_surface.blit(night_surf, (0, 0))
         spawn_enemies()
 
         # restore speed after slow expires
@@ -727,7 +775,7 @@ while True:
                     ko_start_time = pygame.time.get_ticks()
                     player_index = 0
 
-        screen.blit(get_health_bar_surf(player_health, health_bar_mode), (0, 0))
+        game_surface.blit(get_health_bar_surf(player_health, health_bar_mode), (0, 0))
 
         # score/time
         # screen.blit(score_surf, score_rect)
@@ -814,7 +862,7 @@ while True:
             #skeleton_animation()
 
         skeletons.update(player_rect, player_mask)
-        skeletons.draw(screen)
+        skeletons.draw(game_surface)
 
         # player_rect.x -= 1
         #if player_rect.right < 0: player_rect.left = 901
@@ -833,14 +881,18 @@ while True:
             player_animation()
 
         if not player_crouching:
-            screen.blit(player_surf, player_rect)
-        else: screen.blit(player_surf, player_rect.move(0, 50))
+            game_surface.blit(player_surf, player_rect)
+        else: game_surface.blit(player_surf, player_rect.move(0, 50))
         #player.draw(screen)
         #player.update()
 
     if game_state == 2:
+        wave = 0
+        skeletons.empty()
         #game_over_music.play()
-        screen.blit(gameover_surf, (0, 0))
-
+        game_surface.blit(gameover_surf, (0, 0))
+        score = 0
+    scaled = pygame.transform.scale(game_surface, screen.get_size())
+    screen.blit(scaled, (0, 0))
     pygame.display.update()
     clock.tick(60)
